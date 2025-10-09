@@ -33,6 +33,11 @@ const router = createRouter({
       // which is lazy-loaded when the route is visited.
       component: () => import('../views/wyq.vue'),
     },
+    {
+      path: '/wangcan',
+      name: 'wangcan',
+      component: () => import('../views/Wangcan.vue'),
+    },
   ],
 })
 
