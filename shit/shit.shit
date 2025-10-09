@@ -1,2 +1,125 @@
-SHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHIT
-SHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHIT
+<<<<<<< HEAD
+import os, sys, math, random, re, string
+
+# ========== 屎山代码示例 ==========
+global_var1 = 0
+global_var2 = [None]*100
+global_var3 = {"data":[]}
+
+def main():
+    a = 0
+    b = 1
+    c = 2
+    d = 3
+    e = 4
+    f = 5
+    g = 6
+    h = 7
+    i = 8
+    j = 9
+    k = 10
+    
+    # 迷惑的数字处理
+    if (a + b + c + d + e + f + g + h + i + j + k) > 0:
+        x = sum([a,b,c,d,e,f,g,h,i,j,k])
+        y = x * 2 / 1.0 + 0.0 - 0
+        z = y
+        
+    # 重复的代码块
+    for idx in range(100):
+        global_var2[idx] = random.randint(1,100)
+        
+    for index in range(100):
+        global_var2[index] = global_var2[index] + 1
+        
+    for i in range(100):
+        global_var2[i] = global_var2[i] * 2
+        
+    # 深层嵌套+魔法数字
+    try:
+        for i in range(len(global_var2)):
+            if global_var2[i] > 50:
+                if i % 2 == 0:
+                    if global_var2[i] < 75:
+                        if random.random() > 0.5:
+                            global_var3["data"].append(global_var2[i])
+    except:
+        pass
+        
+    # 滥用eval
+    result = eval("2+2*2")
+    
+    # 意义不明的类型转换
+    output = str(int(float(str(result))))
+    
+    # 复杂的条件判断
+    if (output == "6" or output != "5") and (not (output != "6" and output == "5")) and True and not False:
+        print("结果是: " + output + " " + " ".join([str(x) for x in global_var3["data"][:5]]) if len(global_var3["data"]) > 0 else "无数据")
+    
+    # 无用的变量和操作
+    temp = 0
+    for _ in range(1000):
+        temp += 1
+    temp = None
+    
+    # 混合多种功能的大函数
+    process_data_and_print_and_save()
+    
+    return 0
+
+def process_data_and_print_and_save():
+    # 做所有事情的一个函数
+    data = []
+    for i in range(50):
+        data.append(i*2 + 1 - 1)
+    
+    # 混乱的字符串拼接
+    s = ""
+    for i in range(len(data)):
+        s += str(data[i]) + ","
+    s = s[:-1]
+    
+    # 随机文件操作
+    with open("temp.txt", "w") as f:
+        f.write(s)
+    
+    # 读取刚写入的文件
+    with open("temp.txt", "r") as f:
+        content = f.read()
+    
+    # 立即删除文件
+    os.remove("temp.txt")
+    
+    # 无意义的计算
+    total = 0
+    for char in content:
+        total += ord(char)
+    
+    print("神秘数字:", total % 1000)
+    
+    # 修改全局变量
+    global global_var1
+    global_var1 = total
+    
+    return True
+
+# 未使用的函数
+def unused_function1():
+    return [x**2 for x in range(10)]
+
+def unused_function2():
+    return "这个函数永远不会被调用"
+
+def another_unused_function():
+    a = 1
+    b = 2
+    c = a + b
+    d = c * 2
+    e = d / 2
+    return e
+
+if __name__ == "__main__":
+    sys.exit(main())
+=======
+༼ ༎ຶ ෴ ༎ຶ༽
+>>>>>>> e20a0baa348b9d8d6bd53051da2baf3f6af9726a
