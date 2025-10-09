@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import os, sys, math, random, re, string
 
 # ========== 屎山代码示例 ==========
@@ -119,3 +120,6 @@ def another_unused_function():
 
 if __name__ == "__main__":
     sys.exit(main())
+=======
+༼ ༎ຶ ෴ ༎ຶ༽
+>>>>>>> e20a0baa348b9d8d6bd53051da2baf3f6af9726a
