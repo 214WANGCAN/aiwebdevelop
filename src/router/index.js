@@ -38,6 +38,11 @@ const router = createRouter({
       name: 'wangcan',
       component: () => import('../views/Wangcan.vue'),
     },
+    {
+      path: '/tzl',
+      name: 'tzl',
+      component: () => import('../views/tzl.vue'),
+    },
   ],
 })
 
