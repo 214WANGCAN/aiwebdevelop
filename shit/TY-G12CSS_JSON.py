@@ -822,9 +822,3 @@ with open("CourseSchedule.json", 'r', encoding='utf-8') as f:
 #
 # # print(runAutomaticSchedulingForWace(s))
 runAutomaticSchedulingForWace(s)
-
-
-
-
-
-
