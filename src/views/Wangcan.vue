@@ -1,71 +1,120 @@
 <template>
+  <div class="app">
+    <header>
+      <h1>🏰 冒险者任务看板</h1>
+      <p>欢迎来到冒险者公会，选择一个任务开始你的旅程吧！</p>
+    </header>
 
-<body>
-  <h1 class="main-title">喜报</h1>
-  <p class="content">我想...</p>
+    <main>
+      <div class="task-list">
+        <div v-for="task in tasks" :key="task.id" class="task-card">
+          <h2>{{ task.title }}</h2>
+          <p>{{ task.description }}</p>
+          <p><strong>奖励：</strong>{{ task.reward }} 金币</p>
+          <button @click="accept(task)">接受任务</button>
+        </div>
+      </div>
+    </main>
 
-  <h1 class="main-title">祝你生日快乐</h1>
-  <p class="content">以下是</p>
-
-  <h1 class="main-title">你的生日礼物</h1>
-
-  <p class="content">
-    <button class="btn" onclick="showGift()">点击查看礼物</button>
-  </p>
-
-
-</body>
+    <footer>
+      <p>⚔️ 冒险者工会 © 2025</p>
+    </footer>
+  </div>
 </template>
 
-<script>
-function showGift() {
-  var gift = document.getElementById("gift");
-  gift.style.display = "block";
-  console.log("你收到了我的礼物")
+<script setup>
+import { ref } from 'vue'
+
+const tasks = ref([
+  { id: 1, title: '打扫图书馆', description: '清理图书馆的灰尘与书架。', reward: 20 },
+  { id: 2, title: '护送商队', description: '保护商队安全通过森林。', reward: 100 },
+  { id: 3, title: '讨伐史莱姆', description: '清除村外的史莱姆群。', reward: 50 },
+])
+
+function accept(task) {
+  alert(`你接受了任务：「${task.title}」！`)
 }
 </script>
 
-<style>
-body {
-    background-color: #f9f9f9;
-    color: #333;
-    line-height: 1.6;
-    margin: 20px;
-    font-family: Arial, sans-serif;
-  }
+<style scoped>
+/* 让整个页面铺满窗口 */
+html, body, #app, .app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
 
-  .main-title {
-    color: #A80D0C;
-    text-align: center;
-  }
+/* 设置背景、布局 */
+.app {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #b8e1ff, #f8f9fa);
+  color: #333;
+  font-family: "Segoe UI", "PingFang SC", sans-serif;
+  overflow-x: hidden;
+}
 
-  .content {
-    font-size: 16px;
-    background: #fff;
-    padding: 10px;
-    border-radius: 5px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    max-width: 600px;
-    margin: 20px auto;
-    text-align: ce nter;
-  }
+/* 顶部 */
+header {
+  margin-top: 2rem;
+  text-align: center;
+}
 
-  .gift-img {
-    max-width: 100%;
-    border-radius: 10px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    display: none; /* 初始状态不显示 */
-  }
+/* 任务区：自动换行 + 居中 */
+main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
-  /* 按钮样式 */
-  .btn {
-    background-color: #A80D0C;
-    color: #fff;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 16px;
-    margin-top: 15px;
-  }
+.task-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  justify-content: center;
+  padding: 2rem;
+}
+
+/* 卡片 */
+.task-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  padding: 1.5rem;
+  width: 240px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.task-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+}
+
+/* 按钮 */
+button {
+  margin-top: 1rem;
+  background-color: #4CAF50;
+  border: none;
+  color: white;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+button:hover {
+  background-color: #45a049;
+}
+
+/* 底部 */
+footer {
+  text-align: center;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: #666;
+}
 </style>
