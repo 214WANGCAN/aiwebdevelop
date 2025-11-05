@@ -1,10 +1,10 @@
 <template>
-  <div class="lottery-wrapper"> <!-- 新增外层包裹器用于全局居中 -->
-    <div class="machine-group">   <!-- 新增组容器包裹滚轴+按钮 -->
+  <div class="lottery-wrapper">
+    <div class="machine-group">
       <!-- 三个独立的滚轴 -->
       <div v-for="(col, index) in columns" :key="index" class="reel">
         <ul :style="{ transform: `translateY(${col.offset}px)` }">
-          <li v-for="(item, i) in extendedItems" :key="i">{{ item }}</li>
+          <li v-for="(item, i) in reelItems[index]" :key="i">{{ item }}</li>
         </ul>
       </div>
 
@@ -17,29 +17,75 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { ref, onUnmounted } from 'vue';
 
+// 基础菜品列表
 const dishes = [
   '宫保鸡丁', '麻婆豆腐', '水煮鱼', '回锅肉',
   '辣子鸡', '酸菜鱼', '红烧肉', '糖醋排骨',
-  '清蒸鲈鱼', '番茄炒蛋', '葱爆羊肉', '蒜蓉粉丝虾'
-]; // 共12种菜品
+  '清蒸鲈鱼', '番茄炒蛋', '葱爆羊肉', '蒜蓉粉丝虾',
+];
 
-// &#9989; 修改1️⃣：生成足够长的重复列表供滚动使用
-const extendedItems = Array(10).fill(undefined).flatMap(() => [...dishes]);
-const itemHeight = 100; // 每个菜单项的高度（与CSS一致）
+// 工具函数：生成扩展列表（重复多次）
+function generateExtendedList(sourceArray, repeatTimes = 5) {
+  return Array(repeatTimes).fill().flatMap(() => sourceArray);
+}
 
+// &#127775; 为每个滚轮创建不同的内容列表（你可以自由定制）
+const reel1Items = generateExtendedList(shuffleArray(dishes));
+const reel2Items = generateExtendedList(shuffleArray(dishes));
+const reel3Items = generateExtendedList(shuffleArray(dishes)); // 随机打乱
+
+const reelItems = [reel1Items, reel2Items, reel3Items];
+
+const itemHeight = 100; // 每项高度
+const visibleItems = 3; // 可见行数（决定中间是哪一行）
+
+// &#128260; 使用对象数组存储每个滚轮的独立偏移量
 const columns = ref([
   { offset: 0 },
   { offset: 0 },
   { offset: 0 }
 ]);
+
 const isSpinning = ref(false);
-const winnerCombination = ref<string | null>(null);
-let animationFrameId: number | null = null;
-let startTime: number | null = null;
-const duration = 3000; // 总动画时长（毫秒）
+const winnerCombination = ref(null);
+let animationFrameId = null;
+let startTime = null;
+const duration = 3000; // 动画总时长
+
+// 打乱数组函数（Fisher-Yates 洗牌算法）
+function shuffleArray(array) {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// 获取随机中奖菜品
+function getRandomDish() {
+  const randomIndex = Math.floor(Math.random() * dishes.length);
+  return dishes[randomIndex];
+}
+
+// 查找某个菜品在某个列表中的首次出现位置
+function findItemPositionInReel(targetItem, reelData) {
+  return reelData.indexOf(targetItem);
+}
+
+// 计算某个滚轮要让目标菜品出现在中间所需的偏移量
+function calculateOffsetForReel(targetItem, reelData) {
+  const pos = findItemPositionInReel(targetItem, reelData);
+  if (pos === -1) throw new Error(`菜品 "${targetItem}" 未找到于当前列表`);
+
+  // 我们要让这个菜出现在第2个位置（索引1），即中间那一行
+  const targetRowIndex = 1; // 中间行索引
+  const scrollToIndex = pos - targetRowIndex;
+  return scrollToIndex * -itemHeight; // Y轴负方向移动
+}
 
 function startSpinning() {
   if (isSpinning.value) return;
@@ -48,48 +94,53 @@ function startSpinning() {
   winnerCombination.value = null;
   startTime = performance.now();
 
-  // &#9989; 修改2️⃣：为每个滚轴设置随机目标偏移量（必须是itemHeight的整数倍）
-  const targets = columns.value.map(() => {
-    const randomMultiple = Math.floor(Math.random() * 7); // 确保能覆盖到中间项
-    return -randomMultiple * itemHeight;
-  });
+  const selectedDish = getRandomDish();
 
-  function updateAnimation(currentTimestamp: number) {
+  function updateAnimation(currentTimestamp) {
     if (!startTime) startTime = currentTimestamp;
     const elapsed = currentTimestamp - startTime;
-    const progress = Math.min(elapsed / duration, 1); // 0~1之间的进度值
+    const progress = Math.min(elapsed / duration, 1);
 
-    // 使用缓动函数（easeOutCubic）让运动先快后慢
+    // easeOutCubic 缓动
     const easeProgress = 1 - Math.pow(1 - progress, 3);
-    ;
+
     for (let i = 0; i < 3; i++) {
-      const targetOffset = targets[i];
-      // 当前应到达的位置 = 起始点 + (终点−起点)×进度百分比
+      const targetOffset = calculateOffsetForReel(selectedDish, reelItems[i]);
       columns.value[i].offset = targetOffset * easeProgress;
     }
 
     if (progress < 1) {
       animationFrameId = requestAnimationFrame(updateAnimation);
     } else {
-      finishSpinning();
+      finishSpinning(selectedDish);
     }
   }
 
   animationFrameId = requestAnimationFrame(updateAnimation);
 }
 
-function finishSpinning() {
-  cancelAnimationFrame(animationFrameId!);
+function finishSpinning(selectedDish) {
+  cancelAnimationFrame(animationFrameId);
   isSpinning.value = false;
 
-  // &#9989; 修改3️⃣：只取第一个滚轴的中间项作为唯一结果
-  const middleIndex = Math.round(columns.value[0].offset / itemHeight) % dishes.length;
-  winnerCombination.value = dishes[middleIndex];
+  // 确保最终对齐到准确位置
+  for (let i = 0; i < 3; i++) {
+    const finalOffset = calculateOffsetForReel(selectedDish, reelItems[i]);
+    columns.value[i].offset = finalOffset;
+  }
+
+  winnerCombination.value = selectedDish;
 }
+
+onUnmounted(() => {
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
+  }
+});
 </script>
 
 <style scoped>
-/* &#9989; 修改4️⃣：全局居中布局 */
+/* 全局居中布局 */
 .lottery-wrapper {
   display: flex;
   flex-direction: column;
@@ -97,24 +148,25 @@ function finishSpinning() {
   justify-content: center;
   min-height: 100vh;
   padding: 20px;
+  background-color: #f9f9f9;
 }
 
-/* &#9989; 修改5️⃣：机器组横向排列并居中 */
+/* 机器组横向排列并居中 */
 .machine-group {
   display: flex;
   align-items: center;
-  gap: 20px; /* 元素间距 */
-  margin-bottom: 40px; /* 与结果区域的间距 */
+  gap: 20px;
+  margin-bottom: 40px;
 }
 
-/* &#9989; 修改6️⃣：限制每列高度为3个项目（150px）*/
+/* 限制每列高度为3个项目（300px）*/
 .reel {
   width: 200px;
-  height: 300px; /* &#9888;️ 关键！只显示3个菜品 */
-  border: 2px solid #ffcc00;
-  border-radius: 10px;
+  height: 300px;
+  border: 3px solid #ffcc00;
+  border-radius: 12px;
   background: white;
-  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   position: relative;
 }
@@ -124,27 +176,32 @@ function finishSpinning() {
   margin: 0;
   padding: 0;
   transition: transform 0.3s ease-out;
+  display: flex;
+  flex-direction: column;
 }
 
 .reel li {
-  height: 50px;
-  line-height: 50px;
-  text-align: center;
-  font-size: 20px;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
   font-weight: bold;
   color: #333;
+  text-align: center;
   border-bottom: 1px dashed #eee;
 }
 
 button {
-  padding: 12px 30px;
-  font-size: 1.2rem;
+  padding: 14px 32px;
+  font-size: 1.3rem;
   background-color: #ff6b6b;
   color: white;
   border: none;
-  border-radius: 5px;
+  border-radius: 8px;
   cursor: pointer;
   transition: background-color 0.3s;
+  margin-left: 30px;
 }
 
 button:hover:not(:disabled) {
@@ -157,11 +214,15 @@ button:disabled {
 }
 
 .result {
-  font-size: 1.5rem;
+  font-size: 1.8rem;
   color: #4caf50;
   font-weight: bold;
   animation: pulse 1s infinite alternate;
   text-align: center;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
 @keyframes pulse {
