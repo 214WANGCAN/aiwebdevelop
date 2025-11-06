@@ -2,26 +2,35 @@
   <div class="lottery-wrapper">
     <div class="machine-group">
       <!-- 三个独立的滚轴 -->
-      <div v-for="(col, index) in columns" :key="index" class="reel">
-        <ul :style="{ transform: `translateY(${col.offset}px)` }">
-          <li v-for="(item, i) in reelItems[index]" :key="i">{{ item }}</li>
-        </ul>
+      <div
+        v-for="(col, index) in columns"
+        :key="index"
+        class="reel-container"
+        :class="{ spinning: isSpinning }"
+      >
+        <div class="reel">
+          <ul :style="{ transform: `translateY(${col.offset}px)` }">
+            <li v-for="(item, i) in reelItems[index]" :key="i">{{ item }}</li>
+          </ul>
+        </div>
       </div>
 
       <button @click="startSpinning" :disabled="isSpinning">开始抽奖</button>
     </div>
 
+    <!-- 星星特效容器 -->
+    <div v-if="showStars" class="stars-container"></div>
+
     <!-- 中奖弹窗 -->
     <div v-if="showWinnerModal" class="modal-overlay" @click.self="closeModal">
       <div class="modal-content">
         <span class="close-btn" @click="closeModal">&times;</span>
-        <h2>🎉 恭喜你抽中了！</h2>
+        <h2>&#127881; 恭喜你抽中了！</h2>
         <p class="winner-dish">{{ winnerCombination }}</p>
       </div>
     </div>
   </div>
 </template>
-
 <script setup>
 import { ref, onUnmounted } from 'vue';
 
@@ -37,10 +46,20 @@ function generateExtendedList(sourceArray, repeatTimes = 5) {
   return Array(repeatTimes).fill().flatMap(() => sourceArray);
 }
 
-// 为每个滚轮创建不同的内容列表（你可以自由定制）
+// 打乱数组函数（Fisher-Yates 洗牌算法）
+function shuffleArray(array) {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// 为每个滚轮创建不同的内容列表
 const reel1Items = generateExtendedList(shuffleArray([...dishes]));
 const reel2Items = generateExtendedList(shuffleArray([...dishes]));
-const reel3Items = generateExtendedList(shuffleArray([...dishes])); // 随机打乱
+const reel3Items = generateExtendedList(shuffleArray([...dishes]));
 
 const reelItems = [reel1Items, reel2Items, reel3Items];
 
@@ -57,19 +76,10 @@ const columns = ref([
 const isSpinning = ref(false);
 const winnerCombination = ref(null);
 const showWinnerModal = ref(false); // 控制弹窗显隐
+const showStars = ref(false); // 控制星星动画显示
 let animationFrameId = null;
 let startTime = null;
 const duration = 3000; // 动画总时长
-
-// 打乱数组函数（Fisher-Yates 洗牌算法）
-function shuffleArray(array) {
-  const arr = [...array];
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-}
 
 // 获取随机中奖菜品
 function getRandomDish() {
@@ -99,6 +109,7 @@ function startSpinning() {
   isSpinning.value = true;
   winnerCombination.value = null;
   showWinnerModal.value = false; // 确保关闭之前的弹窗
+  showStars.value = false; // 清除上一轮的星星
   startTime = performance.now();
 
   const selectedDish = getRandomDish();
@@ -138,6 +149,7 @@ function finishSpinning(selectedDish) {
 
   winnerCombination.value = selectedDish;
   showWinnerModal.value = true; // 打开弹窗
+  triggerStarsAnimation(); // 触发星星动画
 }
 
 function closeModal() {
@@ -159,6 +171,26 @@ onUnmounted(() => {
   }
   window.removeEventListener('keydown', handleEscKey);
 });
+
+// &#127775; 新增：触发星星动画
+function triggerStarsAnimation() {
+  showStars.value = true;
+  const container = document.querySelector('.stars-container');
+  container.innerHTML = ''; // 清空旧内容
+
+  for (let i = 0; i < 20; i++) {
+    const star = document.createElement('div');
+    star.className = 'star';
+    star.style.left = `${Math.random() * 100}%`;
+    star.style.top = `${Math.random() * 100}%`;
+    star.style.animationDelay = `${Math.random() * 1}s`;
+    container.appendChild(star);
+  }
+
+  setTimeout(() => {
+    showStars.value = false;
+  }, 2000); // 2秒后隐藏星星
+}
 </script>
 
 <style scoped>
@@ -170,7 +202,7 @@ onUnmounted(() => {
   justify-content: center;
   min-height: 100vh;
   padding: 20px;
-  background-color: #f9f9f9;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
   position: relative; /* 为了堆叠上下文 */
 }
 
@@ -183,7 +215,7 @@ onUnmounted(() => {
 }
 
 /* 限制每列高度为1个项目（100px）*/
-.reel {
+.reel-container {
   width: 200px;
   height: 100px;
   border: 3px solid #ffcc00;
@@ -192,13 +224,28 @@ onUnmounted(() => {
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   position: relative;
+  transition: transform 0.3s ease-in-out;
+}
+
+/* 抽奖时的呼吸效果 */
+.reel-container.spinning {
+  animation: breathe 0.8s infinite alternate;
+}
+
+@keyframes breathe {
+  from { transform: scale(1); }
+  to { transform: scale(1.05); }
+}
+
+.reel {
+  width: 100%;
+  height: 100%;
 }
 
 .reel ul {
   list-style: none;
   margin: 0;
   padding: 0;
-  transition: transform 0.3s ease-out;
   display: flex;
   flex-direction: column;
 }
@@ -223,12 +270,13 @@ button {
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: all 0.3s;
   margin-left: 30px;
 }
 
 button:hover:not(:disabled) {
   background-color: #ff5252;
+  transform: translateY(-2px);
 }
 
 button:disabled {
@@ -293,5 +341,36 @@ button:disabled {
 @keyframes slideUp {
   from { transform: translateY(30px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
+}
+
+/* &#127775; 星星动画 */
+.stars-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 999;
+}
+
+.star {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="%23FFD700" d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>') no-repeat center center;
+  background-size: contain;
+  animation: float 2s ease-out forwards;
+}
+
+@keyframes float {
+  0% {
+    opacity: 1;
+    transform: translateY(0) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-100px) rotate(360deg);
+  }
 }
 </style>
