@@ -11,8 +11,13 @@
       <button @click="startSpinning" :disabled="isSpinning">开始抽奖</button>
     </div>
 
-    <div v-if="winnerCombination" class="result">
-      &#127881; 恭喜你！你抽中了：{{ winnerCombination }}
+    <!-- &#127919; 新增：中奖弹窗 -->
+    <div v-if="showWinnerModal" class="modal-overlay" @click.self="closeModal">
+      <div class="modal-content">
+        <span class="close-btn" @click="closeModal">&times;</span>
+        <h2>&#127881; 恭喜你抽中了！</h2>
+        <p class="winner-dish">{{ winnerCombination }}</p>
+      </div>
     </div>
   </div>
 </template>
@@ -33,9 +38,9 @@ function generateExtendedList(sourceArray, repeatTimes = 5) {
 }
 
 // &#127775; 为每个滚轮创建不同的内容列表（你可以自由定制）
-const reel1Items = generateExtendedList(shuffleArray(dishes));
-const reel2Items = generateExtendedList(shuffleArray(dishes));
-const reel3Items = generateExtendedList(shuffleArray(dishes)); // 随机打乱
+const reel1Items = generateExtendedList(shuffleArray([...dishes]));
+const reel2Items = generateExtendedList(shuffleArray([...dishes]));
+const reel3Items = generateExtendedList(shuffleArray([...dishes])); // 随机打乱
 
 const reelItems = [reel1Items, reel2Items, reel3Items];
 
@@ -51,9 +56,30 @@ const columns = ref([
 
 const isSpinning = ref(false);
 const winnerCombination = ref(null);
+const showWinnerModal = ref(false); // 控制弹窗显隐
 let animationFrameId = null;
 let startTime = null;
 const duration = 3000; // 动画总时长
+
+// &#128266; 音频上下文 & 音效管理
+let spinSound = null;
+let celebrationSound = null;
+
+// 初始化音效
+async function initSounds() {
+  try {
+    // &#127920; 滚轮转动音效（短促、高频循环）
+    spinSound = new Audio('file:///Users/bdm/Desktop/victory.m4a');
+    spinSound.loop = true;
+    spinSound.volume = 0.4;
+
+    // &#127942; 中奖庆祝音效（欢快、鼓点）
+    celebrationSound = new Audio('file:///Users/bdm/Desktop/victory.m4a');
+    celebrationSound.volume = 0.6;
+  } catch (error) {
+    console.warn('&#10060; 音效加载失败，请检查网络连接或替换音频链接');
+  }
+}
 
 // 打乱数组函数（Fisher-Yates 洗牌算法）
 function shuffleArray(array) {
@@ -92,9 +118,16 @@ function startSpinning() {
 
   isSpinning.value = true;
   winnerCombination.value = null;
+  showWinnerModal.value = false; // 确保关闭之前的弹窗
   startTime = performance.now();
 
   const selectedDish = getRandomDish();
+
+  // &#9654;️ 播放滚轮转动音效
+  if (spinSound && spinSound.readyState >= 2) {
+    spinSound.currentTime = 0;
+    spinSound.play().catch(e => console.warn('音效播放失败:', e));
+  }
 
   function updateAnimation(currentTimestamp) {
     if (!startTime) startTime = currentTimestamp;
@@ -130,11 +163,51 @@ function finishSpinning(selectedDish) {
   }
 
   winnerCombination.value = selectedDish;
+  showWinnerModal.value = true; // &#9888;️ 关键变化：此时打开弹窗而不是直接显示文本
+
+  // &#128721; 停止滚轮音效
+  if (spinSound) {
+    spinSound.pause();
+    spinSound.currentTime = 0;
+  }
+
+  // &#127881; 播放中奖庆祝音效
+  if (celebrationSound && celebrationSound.readyState >= 2) {
+    celebrationSound.currentTime = 0;
+    celebrationSound.play().catch(e => console.warn('庆祝音效播放失败:', e));
+  }
 }
+
+function closeModal() {
+  showWinnerModal.value = false;
+}
+
+// 监听 ESC 键关闭弹窗
+function handleEscKey(event) {
+  if (event.key === 'Escape' && showWinnerModal.value) {
+    closeModal();
+  }
+}
+
+window.addEventListener('keydown', handleEscKey);
+
+// 初始化音效
+initSounds();
 
 onUnmounted(() => {
   if (animationFrameId) {
     cancelAnimationFrame(animationFrameId);
+  }
+  window.removeEventListener('keydown', handleEscKey);
+
+  // 清理音频
+  if (spinSound) {
+    spinSound.pause();
+    spinSound = null;
+  }
+  if (celebrationSound) {
+    celebrationSound.pause();
+    celebrationSound = null;
   }
 });
 </script>
@@ -149,6 +222,7 @@ onUnmounted(() => {
   min-height: 100vh;
   padding: 20px;
   background-color: #f9f9f9;
+  position: relative; /* 为了堆叠上下文 */
 }
 
 /* 机器组横向排列并居中 */
@@ -213,20 +287,62 @@ button:disabled {
   cursor: not-allowed;
 }
 
-.result {
-  font-size: 1.8rem;
-  color: #4caf50;
-  font-weight: bold;
-  animation: pulse 1s infinite alternate;
-  text-align: center;
-  padding: 20px;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+/* &#128293; 新增样式：模态弹窗 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease-out;
 }
 
-@keyframes pulse {
-  from { transform: scale(1); }
-  to { transform: scale(1.05); }
+.modal-content {
+  background: white;
+  padding: 40px;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+  position: relative;
+  animation: slideUp 0.4s ease-out;
+}
+
+.close-btn {
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  font-size: 32px;
+  cursor: pointer;
+  color: #aaa;
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.close-btn:hover {
+  color: #333;
+}
+
+.winner-dish {
+  font-size: 2rem;
+  color: #4caf50;
+  margin: 20px 0;
+  font-weight: bold;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(30px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 </style>
