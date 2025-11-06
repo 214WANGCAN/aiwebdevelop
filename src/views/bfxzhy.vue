@@ -11,11 +11,11 @@
       <button @click="startSpinning" :disabled="isSpinning">开始抽奖</button>
     </div>
 
-    <!-- &#127919; 新增：中奖弹窗 -->
+    <!-- 中奖弹窗 -->
     <div v-if="showWinnerModal" class="modal-overlay" @click.self="closeModal">
       <div class="modal-content">
         <span class="close-btn" @click="closeModal">&times;</span>
-        <h2>&#127881; 恭喜你抽中了！</h2>
+        <h2>🎉 恭喜你抽中了！</h2>
         <p class="winner-dish">{{ winnerCombination }}</p>
       </div>
     </div>
@@ -37,7 +37,7 @@ function generateExtendedList(sourceArray, repeatTimes = 5) {
   return Array(repeatTimes).fill().flatMap(() => sourceArray);
 }
 
-// &#127775; 为每个滚轮创建不同的内容列表（你可以自由定制）
+// 为每个滚轮创建不同的内容列表（你可以自由定制）
 const reel1Items = generateExtendedList(shuffleArray([...dishes]));
 const reel2Items = generateExtendedList(shuffleArray([...dishes]));
 const reel3Items = generateExtendedList(shuffleArray([...dishes])); // 随机打乱
@@ -45,9 +45,9 @@ const reel3Items = generateExtendedList(shuffleArray([...dishes])); // 随机打
 const reelItems = [reel1Items, reel2Items, reel3Items];
 
 const itemHeight = 100; // 每项高度
-const visibleItems = 3; // 可见行数（决定中间是哪一行）
+const visibleItems = 1; // 可见行数（决定中间是哪一行）
 
-// &#128260; 使用对象数组存储每个滚轮的独立偏移量
+// 使用对象数组存储每个滚轮的独立偏移量
 const columns = ref([
   { offset: 0 },
   { offset: 0 },
@@ -60,26 +60,6 @@ const showWinnerModal = ref(false); // 控制弹窗显隐
 let animationFrameId = null;
 let startTime = null;
 const duration = 3000; // 动画总时长
-
-// &#128266; 音频上下文 & 音效管理
-let spinSound = null;
-let celebrationSound = null;
-
-// 初始化音效
-async function initSounds() {
-  try {
-    // &#127920; 滚轮转动音效（短促、高频循环）
-    spinSound = new Audio('file:///Users/bdm/Desktop/victory.m4a');
-    spinSound.loop = true;
-    spinSound.volume = 0.4;
-
-    // &#127942; 中奖庆祝音效（欢快、鼓点）
-    celebrationSound = new Audio('file:///Users/bdm/Desktop/victory.m4a');
-    celebrationSound.volume = 0.6;
-  } catch (error) {
-    console.warn('&#10060; 音效加载失败，请检查网络连接或替换音频链接');
-  }
-}
 
 // 打乱数组函数（Fisher-Yates 洗牌算法）
 function shuffleArray(array) {
@@ -108,7 +88,7 @@ function calculateOffsetForReel(targetItem, reelData) {
   if (pos === -1) throw new Error(`菜品 "${targetItem}" 未找到于当前列表`);
 
   // 我们要让这个菜出现在第2个位置（索引1），即中间那一行
-  const targetRowIndex = 1; // 中间行索引
+  const targetRowIndex = 0; // 由于visibleItems=1，所以中间是第一个元素
   const scrollToIndex = pos - targetRowIndex;
   return scrollToIndex * -itemHeight; // Y轴负方向移动
 }
@@ -122,12 +102,6 @@ function startSpinning() {
   startTime = performance.now();
 
   const selectedDish = getRandomDish();
-
-  // &#9654;️ 播放滚轮转动音效
-  if (spinSound && spinSound.readyState >= 2) {
-    spinSound.currentTime = 0;
-    spinSound.play().catch(e => console.warn('音效播放失败:', e));
-  }
 
   function updateAnimation(currentTimestamp) {
     if (!startTime) startTime = currentTimestamp;
@@ -163,19 +137,7 @@ function finishSpinning(selectedDish) {
   }
 
   winnerCombination.value = selectedDish;
-  showWinnerModal.value = true; // &#9888;️ 关键变化：此时打开弹窗而不是直接显示文本
-
-  // &#128721; 停止滚轮音效
-  if (spinSound) {
-    spinSound.pause();
-    spinSound.currentTime = 0;
-  }
-
-  // &#127881; 播放中奖庆祝音效
-  if (celebrationSound && celebrationSound.readyState >= 2) {
-    celebrationSound.currentTime = 0;
-    celebrationSound.play().catch(e => console.warn('庆祝音效播放失败:', e));
-  }
+  showWinnerModal.value = true; // 打开弹窗
 }
 
 function closeModal() {
@@ -191,24 +153,11 @@ function handleEscKey(event) {
 
 window.addEventListener('keydown', handleEscKey);
 
-// 初始化音效
-initSounds();
-
 onUnmounted(() => {
   if (animationFrameId) {
     cancelAnimationFrame(animationFrameId);
   }
   window.removeEventListener('keydown', handleEscKey);
-
-  // 清理音频
-  if (spinSound) {
-    spinSound.pause();
-    spinSound = null;
-  }
-  if (celebrationSound) {
-    celebrationSound.pause();
-    celebrationSound = null;
-  }
 });
 </script>
 
@@ -233,10 +182,10 @@ onUnmounted(() => {
   margin-bottom: 40px;
 }
 
-/* 限制每列高度为3个项目（300px）*/
+/* 限制每列高度为1个项目（100px）*/
 .reel {
   width: 200px;
-  height: 300px;
+  height: 100px;
   border: 3px solid #ffcc00;
   border-radius: 12px;
   background: white;
@@ -287,7 +236,7 @@ button:disabled {
   cursor: not-allowed;
 }
 
-/* &#128293; 新增样式：模态弹窗 */
+/* 模态弹窗样式 */
 .modal-overlay {
   position: fixed;
   top: 0;
