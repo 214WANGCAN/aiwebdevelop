@@ -86,6 +86,10 @@ const dishesData = {
   '澳高': {
     '主食': ['烤肉', '肉馅派', '海鲜拼盘'],
     '素食': ['烤蔬菜', '藜麦沙拉', '蔬菜派']
+  },
+  '宿舍楼': {
+    '主食': ['麻辣烫', 'mother', 'father'],
+    '素食': ['烤蔬菜', '藜麦沙拉', '蔬菜派']
   }
 };
 
@@ -121,7 +125,8 @@ const dishTypeFilter = ref({
 const restaurantOptions = [
   { label: '英高', value: '英高' },
   { label: '美高', value: '美高' },
-  { label: '澳高', value: '澳高' }
+  { label: '澳高', value: '澳高' },
+  { label: "宿舍楼", value: "宿舍楼"}
 ];
 
 const dishTypeOptions = [
@@ -486,9 +491,8 @@ button:disabled {
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 5px;
   transition: all 0.3s;
 }
 
