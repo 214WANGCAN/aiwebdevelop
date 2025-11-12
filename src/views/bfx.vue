@@ -18,8 +18,46 @@
       <button @click="startSpinning" :disabled="isSpinning">开始抽奖</button>
     </div>
 
-    <!-- 星星特效容器 -->
-    <div v-if="showStars" class="stars-container"></div>
+    <!-- 筛选器 -->
+    <div class="filters">
+      <div class="filter-group">
+        <button class="filter-btn" @click="toggleRestaurantFilter">
+          {{ restaurantFilter.label }}
+          <span v-if="restaurantFilter.open" class="arrow">▼</span>
+          <span v-else class="arrow">&#9654;</span>
+        </button>
+        <div v-if="restaurantFilter.open" class="filter-dropdown">
+          <div 
+            v-for="option in restaurantOptions" 
+            :key="option.value"
+            class="filter-option"
+            :class="{ active: restaurantFilter.value === option.value }"
+            @click="selectRestaurant(option)"
+          >
+            {{ option.label }}
+          </div>
+        </div>
+      </div>
+
+      <div class="filter-group">
+        <button class="filter-btn" @click="toggleDishTypeFilter">
+          {{ dishTypeFilter.label }}
+          <span v-if="dishTypeFilter.open" class="arrow">▼</span>
+          <span v-else class="arrow">&#9654;</span>
+        </button>
+        <div v-if="dishTypeFilter.open" class="filter-dropdown">
+          <div 
+            v-for="option in dishTypeOptions" 
+            :key="option.value"
+            class="filter-option"
+            :class="{ active: dishTypeFilter.value === option.value }"
+            @click="selectDishType(option)"
+          >
+            {{ option.label }}
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- 中奖弹窗 -->
     <div v-if="showWinnerModal" class="modal-overlay" @click.self="closeModal">
@@ -31,15 +69,25 @@
     </div>
   </div>
 </template>
-<script setup>
-import { ref, onUnmounted } from 'vue';
 
-// 基础菜品列表
-const dishes = [
-  '宫保鸡丁', '麻婆豆腐', '水煮鱼', '回锅肉',
-  '辣子鸡', '酸菜鱼', '红烧肉', '糖醋排骨',
-  '清蒸鲈鱼', '番茄炒蛋', '葱爆羊肉', '蒜蓉粉丝虾',
-];
+<script setup>
+import { ref, onUnmounted, watch } from 'vue';
+
+// 基础菜品数据（按餐厅和类型分类）
+const dishesData = {
+  '英高': {
+    '主食': ['炸鱼薯条', '牧羊人派', '约克郡布丁'],
+    '素食': ['烤蔬菜派', '豆类沙拉', '蔬菜卷']
+  },
+  '美高': {
+    '主食': ['汉堡', '披萨', '牛排'],
+    '素食': ['沙拉', '蔬菜三明治', '素汉堡']
+  },
+  '澳高': {
+    '主食': ['烤肉', '肉馅派', '海鲜拼盘'],
+    '素食': ['烤蔬菜', '藜麦沙拉', '蔬菜派']
+  }
+};
 
 // 工具函数：生成扩展列表（重复多次）
 function generateExtendedList(sourceArray, repeatTimes = 5) {
@@ -56,12 +104,42 @@ function shuffleArray(array) {
   return arr;
 }
 
-// 为每个滚轮创建不同的内容列表
-const reel1Items = generateExtendedList(shuffleArray([...dishes]));
-const reel2Items = generateExtendedList(shuffleArray([...dishes]));
-const reel3Items = generateExtendedList(shuffleArray([...dishes]));
+// 筛选状态
+const restaurantFilter = ref({
+  label: '选择餐厅',
+  value: '',
+  open: false
+});
 
-const reelItems = [reel1Items, reel2Items, reel3Items];
+const dishTypeFilter = ref({
+  label: '选择类型',
+  value: '',
+  open: false
+});
+
+// 选项列表
+const restaurantOptions = [
+  { label: '英高', value: '英高' },
+  { label: '美高', value: '美高' },
+  { label: '澳高', value: '澳高' }
+];
+
+const dishTypeOptions = [
+  { label: '主食', value: '主食' },
+  { label: '素食', value: '素食' }
+];
+
+// 根据筛选条件获取菜品列表
+function getFilteredDishes() {
+  if (!restaurantFilter.value.value || !dishTypeFilter.value.value) {
+    return [];
+  }
+  
+  return dishesData[restaurantFilter.value.value][dishTypeFilter.value.value] || [];
+}
+
+// 为每个滚轮创建不同的内容列表（每个滚轮使用不同的顺序）
+const reelItems = ref([[], [], []]);
 
 const itemHeight = 100; // 每项高度
 const visibleItems = 1; // 可见行数（决定中间是哪一行）
@@ -76,15 +154,44 @@ const columns = ref([
 const isSpinning = ref(false);
 const winnerCombination = ref(null);
 const showWinnerModal = ref(false); // 控制弹窗显隐
-const showStars = ref(false); // 控制星星动画显示
+
 let animationFrameId = null;
 let startTime = null;
 const duration = 3000; // 动画总时长
 
+// 监听筛选条件变化，更新菜品列表
+watch([restaurantFilter, dishTypeFilter], () => {
+  updateReelItems();
+}, { deep: true });
+
+// 初始化时设置默认值
+restaurantFilter.value = { ...restaurantFilter.value, value: '英高', label: '英高' };
+dishTypeFilter.value = { ...dishTypeFilter.value, value: '主食', label: '主食' };
+updateReelItems();
+
+function updateReelItems() {
+  const filteredDishes = getFilteredDishes();
+  if (filteredDishes.length === 0) return;
+  
+  // 为每个滚轮生成不同的顺序
+  const shuffled1 = shuffleArray([...filteredDishes]);
+  const shuffled2 = shuffleArray([...filteredDishes]);
+  const shuffled3 = shuffleArray([...filteredDishes]);
+  
+  reelItems.value = [
+    generateExtendedList(shuffled1),
+    generateExtendedList(shuffled2),
+    generateExtendedList(shuffled3)
+  ];
+}
+
 // 获取随机中奖菜品
 function getRandomDish() {
-  const randomIndex = Math.floor(Math.random() * dishes.length);
-  return dishes[randomIndex];
+  const filteredDishes = getFilteredDishes();
+  if (filteredDishes.length === 0) return '请先选择餐厅和类型';
+  
+  const randomIndex = Math.floor(Math.random() * filteredDishes.length);
+  return filteredDishes[randomIndex];
 }
 
 // 查找某个菜品在某个列表中的首次出现位置
@@ -106,10 +213,15 @@ function calculateOffsetForReel(targetItem, reelData) {
 function startSpinning() {
   if (isSpinning.value) return;
 
+  const filteredDishes = getFilteredDishes();
+  if (filteredDishes.length === 0) {
+    alert('请先选择餐厅和菜品类型');
+    return;
+  }
+
   isSpinning.value = true;
   winnerCombination.value = null;
   showWinnerModal.value = false; // 确保关闭之前的弹窗
-  showStars.value = false; // 清除上一轮的星星
   startTime = performance.now();
 
   const selectedDish = getRandomDish();
@@ -123,7 +235,7 @@ function startSpinning() {
     const easeProgress = 1 - Math.pow(1 - progress, 3);
 
     for (let i = 0; i < 3; i++) {
-      const targetOffset = calculateOffsetForReel(selectedDish, reelItems[i]);
+      const targetOffset = calculateOffsetForReel(selectedDish, reelItems.value[i]);
       columns.value[i].offset = targetOffset * easeProgress;
     }
 
@@ -143,13 +255,12 @@ function finishSpinning(selectedDish) {
 
   // 确保最终对齐到准确位置
   for (let i = 0; i < 3; i++) {
-    const finalOffset = calculateOffsetForReel(selectedDish, reelItems[i]);
+    const finalOffset = calculateOffsetForReel(selectedDish, reelItems.value[i]);
     columns.value[i].offset = finalOffset;
   }
 
   winnerCombination.value = selectedDish;
   showWinnerModal.value = true; // 打开弹窗
-  triggerStarsAnimation(); // 触发星星动画
 }
 
 function closeModal() {
@@ -172,25 +283,40 @@ onUnmounted(() => {
   window.removeEventListener('keydown', handleEscKey);
 });
 
-// &#127775; 新增：触发星星动画
-function triggerStarsAnimation() {
-  showStars.value = true;
-  const container = document.querySelector('.stars-container');
-  container.innerHTML = ''; // 清空旧内容
-
-  for (let i = 0; i < 20; i++) {
-    const star = document.createElement('div');
-    star.className = 'star';
-    star.style.left = `${Math.random() * 100}%`;
-    star.style.top = `${Math.random() * 100}%`;
-    star.style.animationDelay = `${Math.random() * 1}s`;
-    container.appendChild(star);
+// 筛选器交互逻辑
+function toggleRestaurantFilter() {
+  restaurantFilter.value.open = !restaurantFilter.value.open;
+  if (restaurantFilter.value.open) {
+    dishTypeFilter.value.open = false;
   }
-
-  setTimeout(() => {
-    showStars.value = false;
-  }, 2000); // 2秒后隐藏星星
 }
+
+function toggleDishTypeFilter() {
+  dishTypeFilter.value.open = !dishTypeFilter.value.open;
+  if (dishTypeFilter.value.open) {
+    restaurantFilter.value.open = false;
+  }
+}
+
+function selectRestaurant(option) {
+  restaurantFilter.value.value = option.value;
+  restaurantFilter.value.label = option.label;
+  restaurantFilter.value.open = false;
+}
+
+function selectDishType(option) {
+  dishTypeFilter.value.value = option.value;
+  dishTypeFilter.value.label = option.label;
+  dishTypeFilter.value.open = false;
+}
+
+// 点击外部关闭筛选器
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.filter-group')) {
+    restaurantFilter.value.open = false;
+    dishTypeFilter.value.open = false;
+  }
+});
 </script>
 
 <style scoped>
@@ -203,7 +329,6 @@ function triggerStarsAnimation() {
   min-height: 100vh;
   padding: 20px;
   background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-  position: relative; /* 为了堆叠上下文 */
 }
 
 /* 机器组横向排列并居中 */
@@ -343,34 +468,70 @@ button:disabled {
   to { transform: translateY(0); opacity: 1; }
 }
 
-/* &#127775; 星星动画 */
-.stars-container {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 999;
+/* 筛选器样式 */
+.filters {
+  display: flex;
+  gap: 20px;
+  margin-top: 30px;
 }
 
-.star {
+.filter-group {
+  position: relative;
+}
+
+.filter-btn {
+  padding: 10px 20px;
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s;
+}
+
+.filter-btn:hover {
+  background-color: #3a7bc8;
+}
+
+.arrow {
+  font-size: 12px;
+  transition: transform 0.3s;
+}
+
+.filter-dropdown {
   position: absolute;
-  width: 20px;
-  height: 20px;
-  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="%23FFD700" d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>') no-repeat center center;
-  background-size: contain;
-  animation: float 2s ease-out forwards;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+  margin-top: 5px;
+  overflow: hidden;
 }
 
-@keyframes float {
-  0% {
-    opacity: 1;
-    transform: translateY(0) rotate(0deg);
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-100px) rotate(360deg);
-  }
+.filter-option {
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.filter-option:last-child {
+  border-bottom: none;
+}
+
+.filter-option:hover {
+  background-color: #f5f5f5;
+}
+
+.filter-option.active {
+  background-color: #e3f2fd;
+  color: #1976d2;
+  font-weight: bold;
 }
 </style>
